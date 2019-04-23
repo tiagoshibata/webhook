@@ -1,7 +1,10 @@
 package webhook
 
 import (
+	"bytes"
 	"errors"
+	"regexp"
+	"strings"
 
 	"github.com/requilence/integram"
 )
@@ -60,6 +63,48 @@ func update(c *integram.Context) error {
 	return nil
 }
 
+func escapeTags(text string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(text, "<", "&lt;"), ">", "&gt;")
+}
+
+func convertToMarkdown(text string) string {
+	// Escape URL links if outside code blocks.
+	// Message format is documented at https://api.slack.com/docs/message-formatting)
+	// References to a Slack channel (@), user (#) or variable (!) are kept as-is
+	linkOrCodeBlockRegexp := regexp.MustCompile("```.+```|`[^`]+`|<([^@#!][^|>]+)(|[^>]+)?>")
+
+	submatches := linkOrCodeBlockRegexp.FindAllStringSubmatchIndex(text, -1)
+	if submatches == nil {
+		return escapeTags(text)
+	}
+
+	convertedBuffer := new(bytes.Buffer)
+	convertedBuffer.Grow(len(text))
+	currentPosition := 0
+	for _, submatch := range submatches {
+		if submatch[0] > 0 {
+			convertedBuffer.WriteString(escapeTags(text[currentPosition:submatch[0]]))
+		}
+		if submatch[2] < 0 {
+			// Code block, copy as-is
+			convertedBuffer.WriteString(text[submatch[0]:submatch[1]])
+		} else {
+			// URL link, convert to Markdown
+			url := text[submatch[2]:submatch[3]]
+			displayText := url
+			if submatch[4] > 0 && submatch[4] != submatch[5] {
+				displayText = text[submatch[4] + 1:submatch[5]]
+			}
+			convertedBuffer.WriteString("[" + displayText + "](" + url + ")")
+		}
+		currentPosition = submatch[1]
+	}
+	if currentPosition < len(text) {
+		convertedBuffer.WriteString(escapeTags(text[currentPosition:]))
+	}
+	return convertedBuffer.String()
+}
+
 func webhookHandler(c *integram.Context, wc *integram.WebhookContext) (err error) {
 
 	wh := webhook{Mrkdwn: true}
@@ -67,6 +112,10 @@ func webhookHandler(c *integram.Context, wc *integram.WebhookContext) (err error
 
 	if err != nil {
 		return
+	}
+
+	if wh.Mrkdwn {
+		wh.Text = convertToMarkdown(wh.Text);
 	}
 
 	if len(wh.Attachments) > 0 {
