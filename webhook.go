@@ -71,7 +71,7 @@ func convertToMarkdown(text string) string {
 	// Escape URL links if outside code blocks.
 	// Message format is documented at https://api.slack.com/docs/message-formatting)
 	// References to a Slack channel (@), user (#) or variable (!) are kept as-is
-	linkOrCodeBlockRegexp := regexp.MustCompile("```.+```|`[^`]+`|<([^@#!][^|>]+)(|[^>]+)?>")
+	linkOrCodeBlockRegexp := regexp.MustCompile("```.+```|`[^`\n]+`|<([^@#!\n][^|>\n]*)(|[^>\n]+)?>")
 
 	submatches := linkOrCodeBlockRegexp.FindAllStringSubmatchIndex(text, -1)
 	if submatches == nil {
