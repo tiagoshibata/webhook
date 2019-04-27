@@ -64,7 +64,7 @@ func update(c *integram.Context) error {
 }
 
 func escapeTags(text string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(text, "<", "&lt;"), ">", "&gt;")
+	return strings.Replace(strings.Replace(text, "<", "&lt;", -1), ">", "&gt;", -1)
 }
 
 func convertToMarkdown(text string) string {
