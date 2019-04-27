@@ -153,12 +153,12 @@ func webhookHandler(c *integram.Context, wc *integram.WebhookContext) (err error
 		}
 
 		if haveAttachmentWithText {
-			return c.NewMessage().SetText(convertToMarkdown(text)).EnableAntiFlood().EnableHTML().Send()
+			return c.NewMessage().SetText(convertToMarkdown(text)).EnableMarkdown().Send()
 		}
 	}
 
 	if wh.Text != "" {
-		m := c.NewMessage().SetText(wh.Text + " " + wh.Channel).EnableAntiFlood()
+		m := c.NewMessage().SetText(wh.Text + " " + wh.Channel)
 		if wh.Mrkdwn {
 			m.EnableMarkdown()
 		}
